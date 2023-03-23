@@ -1,28 +1,48 @@
-import { ObjectType } from 'typeorm';
+import { ObjectType, ObjectLiteral, DataSource } from 'typeorm';
 import RepositoryInterface from '../interface/RepositoryInterface';
+import { AppDataSource } from '../utils/dataSource';
 
-export abstract class BaseRepository<T> implements RepositoryInterface<T> {
+export abstract class BaseRepository<T extends ObjectLiteral> implements RepositoryInterface<T> {
   private modelType: ObjectType<T>;
+  private dataSource!: DataSource;
 
   protected constructor(modelType: ObjectType<T>) {
-    console.log(modelType);
     this.modelType = modelType;
+    this.getConnection();
   }
 
-  find(item: T): Promise<T[]> {
+  async getConnection(): Promise<DataSource> {
+    return this.dataSource = await AppDataSource.initialize();
+  }
+
+  repository() {
+    return this.dataSource.getRepository(this.modelType);
+  }
+
+  async find(item: T): Promise<T[]> {
     throw new Error('Method not implemented.');
   }
-  findOne(id: string): Promise<T> {
+
+  async findOne(id: string): Promise<T> {
     throw new Error('Method not implemented.');
   }
-  create(item: T): Promise<T> {
-    console.log(item, this.modelType);
+
+  async create(item: T): Promise<T> {
+    try {
+      const repository = this.dataSource.getRepository(this.modelType);
+      const result = await repository.save(item);
+      return result;
+    } catch(error) {
+      console.log(error);
+      return Promise.reject([]);
+    }
+  }
+
+  async update(id: string, item: T): Promise<boolean> {
     throw new Error('Method not implemented.');
   }
-  update(id: string, item: T): Promise<boolean> {
-    throw new Error('Method not implemented.');
-  }
-  delete(id: string): Promise<T> {
+
+  async delete(id: string): Promise<T> {
     throw new Error('Method not implemented.');
   }
 
